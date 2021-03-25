@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "lightpistons:block/light_piston_top_sticky",
+    "bottom": "lightpistons:block/light_piston_bottom",
+    "side": "lightpistons:block/light_piston_side"
+  }
+}
