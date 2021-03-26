@@ -2,6 +2,7 @@
   "required": true,
   "package": "amymialee.lightpistons.mixin",
   "compatibilityLevel": "JAVA_8",
+  "refmap": "lightpistons.refmap.json",
   "mixins": [
     "PistonBlockMixin",
     "PistonHeadBlockMixin"

@@ -1,6 +1,5 @@
 package amymialee.lightpistons.blocks;
 
-import amymialee.lightpistons.RegisterPistons;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import net.minecraft.block.*;
@@ -22,16 +21,77 @@ import java.util.Map;
 public class LightPistonBlock extends PistonBlock {
     public LightPistonBlock(boolean sticky) {
         super(sticky, AbstractBlock.Properties.create(Material.PISTON).hardnessAndResistance(1.5F));
-        this.setDefaultState(this.stateContainer.getBaseState().with(FACING, Direction.NORTH).with(EXTENDED, Boolean.FALSE));
         this.isSticky = sticky;
     }
     private final boolean isSticky;
 
+    @Override
+    public boolean eventReceived(BlockState state, World worldIn, BlockPos pos, int id, int param) {
+        Direction direction = state.get(FACING);
+        if (!worldIn.isRemote) {
+            boolean flag = this.shouldBeExtended(worldIn, pos, direction);
+            if (flag && (id == 1 || id == 2)) {
+                worldIn.setBlockState(pos, state.with(EXTENDED, Boolean.TRUE), 2);
+                return false;
+            }
+            if (!flag && id == 0) {
+                return false;
+            }
+        }
+        if (id == 0) {
+            if (net.minecraftforge.event.ForgeEventFactory.onPistonMovePre(worldIn, pos, direction, true)) return false;
+            if (!this.doMove(worldIn, pos, direction, true)) {
+                return false;
+            }
+            worldIn.setBlockState(pos, state.with(EXTENDED, Boolean.TRUE), 67);
+            worldIn.playSound(null, pos, SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.5F, worldIn.rand.nextFloat() * 0.25F + 0.6F);
+        } else if (id == 1 || id == 2) {
+            if (net.minecraftforge.event.ForgeEventFactory.onPistonMovePre(worldIn, pos, direction, false)) return false;
+            TileEntity tileentity1 = worldIn.getTileEntity(pos.offset(direction));
+            if (tileentity1 instanceof PistonTileEntity) {
+                ((PistonTileEntity)tileentity1).clearPistonTileEntity();
+            }
+            BlockState blockstate = Blocks.MOVING_PISTON.getDefaultState().with(MovingPistonBlock.FACING, direction).with(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
+            worldIn.setBlockState(pos, blockstate, 20);
+            worldIn.setTileEntity(pos, MovingPistonBlock.createTilePiston(this.getDefaultState().with(FACING, Direction.byIndex(param & 7)), direction, false, true));
+            worldIn.updateBlock(pos, blockstate.getBlock());
+            blockstate.updateNeighbours(worldIn, pos, 2);
+            if (this.isSticky) {
+                BlockPos blockpos = pos.add(direction.getXOffset() * 2, direction.getYOffset() * 2, direction.getZOffset() * 2);
+                BlockState blockstate1 = worldIn.getBlockState(blockpos);
+                boolean flag1 = false;
+                if (blockstate1.matchesBlock(Blocks.MOVING_PISTON)) {
+                    TileEntity tileentity = worldIn.getTileEntity(blockpos);
+                    if (tileentity instanceof PistonTileEntity) {
+                        PistonTileEntity pistontileentity = (PistonTileEntity)tileentity;
+                        if (pistontileentity.getFacing() == direction && pistontileentity.isExtending()) {
+                            pistontileentity.clearPistonTileEntity();
+                            flag1 = true;
+                        }
+                    }
+                }
+                if (!flag1) {
+                    if (id != 1 || blockstate1.isAir() || !canPush(blockstate1, worldIn, blockpos, direction.getOpposite(), false, direction) || blockstate1.getPushReaction() != PushReaction.NORMAL && !blockstate1.matchesBlock(Blocks.PISTON) && !blockstate1.matchesBlock(Blocks.STICKY_PISTON)) {
+                        worldIn.removeBlock(pos.offset(direction), false);
+                    } else {
+                        this.doMove(worldIn, pos, direction, false);
+                    }
+                }
+            } else {
+                worldIn.removeBlock(pos.offset(direction), false);
+            }
+            worldIn.playSound(null, pos, SoundEvents.BLOCK_PISTON_CONTRACT, SoundCategory.BLOCKS, 0.5F, worldIn.rand.nextFloat() * 0.15F + 0.6F);
+        }
+        net.minecraftforge.event.ForgeEventFactory.onPistonMovePost(worldIn, pos, direction, (id == 0));
+        return true;
+    }
+
     private boolean doMove(World worldIn, BlockPos pos, Direction directionIn, boolean extending) {
         BlockPos blockpos = pos.offset(directionIn);
-        if (!extending && worldIn.getBlockState(blockpos).matchesBlock(RegisterPistons.lightPistonHead)) {
+        if (!extending && worldIn.getBlockState(blockpos).matchesBlock(Blocks.PISTON_HEAD)) {
             worldIn.setBlockState(blockpos, Blocks.AIR.getDefaultState(), 20);
         }
+
         PistonBlockStructureHelper pistonblockstructurehelper = new PistonBlockStructureHelper(worldIn, pos, directionIn, extending);
         if (!pistonblockstructurehelper.canMove()) {
             return false;
@@ -72,7 +132,7 @@ public class LightPistonBlock extends PistonBlock {
 
             if (extending) {
                 PistonType pistontype = this.isSticky ? PistonType.STICKY : PistonType.DEFAULT;
-                BlockState blockstate4 = RegisterPistons.lightPistonHead.getDefaultState().with(PistonHeadBlock.FACING, directionIn).with(PistonHeadBlock.TYPE, pistontype);
+                BlockState blockstate4 = Blocks.PISTON_HEAD.getDefaultState().with(PistonHeadBlock.FACING, directionIn).with(PistonHeadBlock.TYPE, pistontype);
                 BlockState blockstate6 = Blocks.MOVING_PISTON.getDefaultState().with(MovingPistonBlock.FACING, directionIn).with(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
                 map.remove(blockpos);
                 worldIn.setBlockState(blockpos, blockstate6, 68);
@@ -107,20 +167,12 @@ public class LightPistonBlock extends PistonBlock {
             }
 
             if (extending) {
-                worldIn.notifyNeighborsOfStateChange(blockpos, RegisterPistons.lightPistonHead);
+                worldIn.notifyNeighborsOfStateChange(blockpos, Blocks.PISTON_HEAD);
             }
 
             return true;
         }
     }
-
-
-
-
-
-
-
-
 
     private boolean shouldBeExtended(World worldIn, BlockPos pos, Direction facing) {
         for(Direction direction : Direction.values()) {
@@ -142,73 +194,5 @@ public class LightPistonBlock extends PistonBlock {
 
             return false;
         }
-    }
-
-    @Override
-    public boolean eventReceived(BlockState state, World worldIn, BlockPos pos, int id, int param) {
-        Direction direction = state.get(FACING);
-        if (!worldIn.isRemote) {
-            boolean flag = this.shouldBeExtended(worldIn, pos, direction);
-            if (flag && (id == 1 || id == 2)) {
-                worldIn.setBlockState(pos, state.with(EXTENDED, Boolean.TRUE), 2);
-                return false;
-            }
-
-            if (!flag && id == 0) {
-                return false;
-            }
-        }
-
-        if (id == 0) {
-            if (net.minecraftforge.event.ForgeEventFactory.onPistonMovePre(worldIn, pos, direction, true)) return false;
-            if (!this.doMove(worldIn, pos, direction, true)) {
-                return false;
-            }
-
-            worldIn.setBlockState(pos, state.with(EXTENDED, Boolean.TRUE), 67);
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.5F, worldIn.rand.nextFloat() * 0.25F + 0.6F);
-        } else if (id == 1 || id == 2) {
-            if (net.minecraftforge.event.ForgeEventFactory.onPistonMovePre(worldIn, pos, direction, false)) return false;
-            TileEntity tileentity1 = worldIn.getTileEntity(pos.offset(direction));
-            if (tileentity1 instanceof PistonTileEntity) {
-                ((PistonTileEntity)tileentity1).clearPistonTileEntity();
-            }
-
-            BlockState blockstate = Blocks.MOVING_PISTON.getDefaultState().with(MovingPistonBlock.FACING, direction).with(MovingPistonBlock.TYPE, this.isSticky ? PistonType.STICKY : PistonType.DEFAULT);
-            worldIn.setBlockState(pos, blockstate, 20);
-            worldIn.setTileEntity(pos, MovingPistonBlock.createTilePiston(this.getDefaultState().with(FACING, Direction.byIndex(param & 7)), direction, false, true));
-            worldIn.updateBlock(pos, blockstate.getBlock());
-            blockstate.updateNeighbours(worldIn, pos, 2);
-            if (this.isSticky) {
-                BlockPos blockpos = pos.add(direction.getXOffset() * 2, direction.getYOffset() * 2, direction.getZOffset() * 2);
-                BlockState blockstate1 = worldIn.getBlockState(blockpos);
-                boolean flag1 = false;
-                if (blockstate1.matchesBlock(Blocks.MOVING_PISTON)) {
-                    TileEntity tileentity = worldIn.getTileEntity(blockpos);
-                    if (tileentity instanceof PistonTileEntity) {
-                        PistonTileEntity pistontileentity = (PistonTileEntity)tileentity;
-                        if (pistontileentity.getFacing() == direction && pistontileentity.isExtending()) {
-                            pistontileentity.clearPistonTileEntity();
-                            flag1 = true;
-                        }
-                    }
-                }
-
-                if (!flag1) {
-                    if (id != 1 || blockstate1.isAir() || !canPush(blockstate1, worldIn, blockpos, direction.getOpposite(), false, direction) || blockstate1.getPushReaction() != PushReaction.NORMAL && !blockstate1.matchesBlock(Blocks.PISTON) && !blockstate1.matchesBlock(Blocks.STICKY_PISTON)) {
-                        worldIn.removeBlock(pos.offset(direction), false);
-                    } else {
-                        this.doMove(worldIn, pos, direction, false);
-                    }
-                }
-            } else {
-                worldIn.removeBlock(pos.offset(direction), false);
-            }
-
-            worldIn.playSound(null, pos, SoundEvents.BLOCK_PISTON_CONTRACT, SoundCategory.BLOCKS, 0.5F, worldIn.rand.nextFloat() * 0.15F + 0.6F);
-        }
-
-        net.minecraftforge.event.ForgeEventFactory.onPistonMovePost(worldIn, pos, direction, (id == 0));
-        return true;
     }
 }
