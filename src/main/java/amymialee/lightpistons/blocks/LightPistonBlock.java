@@ -391,16 +391,12 @@ public class LightPistonBlock extends PistonBlock {
         Direction direction = state.get(FACING);
         boolean flag1 = this.shouldBeExtended(worldIn, pos, direction);
         boolean flag2 = this.shouldBeExtended(worldIn, pos, direction.getOpposite());
-        if (flag1 && (state.get(EXTENDEDLIGHT) == 0)) {
-            if (new PistonBlockStructureHelper(worldIn, pos, direction, true).canMove()) {
-                worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 1).with(EXTENDED, Boolean.TRUE), 2);
-                worldIn.addBlockEvent(pos, this, 0, direction.getIndex());
-            }
-        } else if (flag2 && (state.get(EXTENDEDLIGHT) == 0)) {
-            if (new PistonBlockStructureHelper(worldIn, pos, direction.getOpposite(), true).canMove()) {
-                worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 2).with(EXTENDED, Boolean.TRUE), 2);
-                worldIn.addBlockEvent(pos, this, 3, direction.getOpposite().getIndex());
-            }
+        if (flag1 && (state.get(EXTENDEDLIGHT) == 0) && new PistonBlockStructureHelper(worldIn, pos, direction, true).canMove()) {
+            worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 1).with(EXTENDED, Boolean.TRUE), 2);
+            worldIn.addBlockEvent(pos, this, 0, direction.getIndex());
+        } else if (flag2 && (state.get(EXTENDEDLIGHT) == 0) && new PistonBlockStructureHelper(worldIn, pos, direction.getOpposite(), true).canMove()) {
+            worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 2).with(EXTENDED, Boolean.TRUE), 2);
+            worldIn.addBlockEvent(pos, this, 3, direction.getOpposite().getIndex());
         } else {
             if (!flag1 && (state.get(EXTENDEDLIGHT) == 1)) {
                 BlockPos blockpos = pos.offset(direction, 2);
