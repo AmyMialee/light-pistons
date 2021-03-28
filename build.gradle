@@ -32,7 +32,7 @@ minecraft {
         client {
             workingDirectory project.file('run')
             arg "-mixin.config=lightpistons.mixins.json"
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             mods {
                 lightpistons {
@@ -44,7 +44,7 @@ minecraft {
         server {
             workingDirectory project.file('run')
             arg "-mixin.config=lightpistons.mixins.json"
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             mods {
                 lightpistons {
@@ -58,7 +58,7 @@ minecraft {
             arg "-mixin.config=lightpistons.mixins.json"
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
             property 'forge.logging.console.level', 'debug'
-            args '--mod', 'lightpistons', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            args '--mod', 'lightpistons', '--all', '--output', file('src/generated/resources/'), "--existing", file('src/main/resources/'), "--existing", file('src/generated/resources/'), "--reports"
             mods {
                 lightpistons {
                     source sourceSets.main
@@ -77,6 +77,7 @@ repositories {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
+    implementation 'junit:junit:4.12'
     minecraft 'net.minecraftforge:forge:1.16.5-36.1.2'
     annotationProcessor 'org.spongepowered:mixin:0.8'
     annotationProcessor 'org.spongepowered:mixin:0.8'
