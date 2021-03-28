@@ -116,7 +116,6 @@ public class LightPistonBlock extends PistonBlock {
         net.minecraftforge.event.ForgeEventFactory.onPistonMovePost(worldIn, pos, direction, (id == 0));
         return true;
     }
-        //Needs to push self back instead of arm backwards
     public boolean eventReceived2(BlockState state, World worldIn, BlockPos pos, int id, int param) {
         Direction direction = state.get(FACING).getOpposite();
         if (!worldIn.isRemote) {
@@ -392,12 +391,13 @@ public class LightPistonBlock extends PistonBlock {
         Direction direction = state.get(FACING);
         boolean flag1 = this.shouldBeExtended(worldIn, pos, direction);
         boolean flag2 = this.shouldBeExtended(worldIn, pos, direction.getOpposite());
-        boolean flag = flag1 || flag2;
-        if (flag && (state.get(EXTENDEDLIGHT) == 0)) {
+        if (flag1 && (state.get(EXTENDEDLIGHT) == 0)) {
             if (new PistonBlockStructureHelper(worldIn, pos, direction, true).canMove()) {
                 worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 1).with(EXTENDED, Boolean.TRUE), 2);
                 worldIn.addBlockEvent(pos, this, 0, direction.getIndex());
-            } else if (new PistonBlockStructureHelper(worldIn, pos, direction.getOpposite(), true).canMove()) {
+            }
+        } else if (flag2 && (state.get(EXTENDEDLIGHT) == 0)) {
+            if (new PistonBlockStructureHelper(worldIn, pos, direction.getOpposite(), true).canMove()) {
                 worldIn.setBlockState(pos, state.with(EXTENDEDLIGHT, 2).with(EXTENDED, Boolean.TRUE), 2);
                 worldIn.addBlockEvent(pos, this, 3, direction.getOpposite().getIndex());
             }
