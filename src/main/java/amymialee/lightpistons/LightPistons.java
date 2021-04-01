@@ -12,5 +12,6 @@ public class LightPistons {
     }
     public void registerCommonEvents(IEventBus eventBus) {
         eventBus.register(RegisterPistons.class);
+        eventBus.register(RegisterRedstone.class);
     }
 }
